@@ -11,7 +11,7 @@ namespace Dapper
 {
     public static partial class SimpleCRUD
     {
-        public static string GetByIdSql<T>(this T t,object id)
+        public static string GetByPkSql<T>(this T t)
         {
             var currenttype = typeof(T);
             var idProps = GetIdProperties(currenttype).ToList();
@@ -28,13 +28,14 @@ namespace Dapper
             //create a new empty instance of the type to get the base properties
             BuildSelect(sb, GetScaffoldableProperties((T)Activator.CreateInstance(typeof(T))).ToArray());
             sb.AppendFormat(" from {0}", name);
-            sb.Append(" where " + GetColumnName(onlyKey) + " = @Id");
+            var pkColumnName = GetColumnName(onlyKey);
+            sb.Append(" where " + pkColumnName + " = @"+pkColumnName);
 
-            var dynParms = new DynamicParameters();
-            dynParms.Add("@id", id);
+            //var dynParms = new DynamicParameters();
+            //dynParms.Add("@id", id);
 
-            if (Debugger.IsAttached)
-                Trace.WriteLine(String.Format("Get<{0}>: {1} with Id: {2}", currenttype, sb, id));
+            //if (Debugger.IsAttached)
+            //    Trace.WriteLine(String.Format("Get<{0}>: {1} with Id: {2}", currenttype, sb, id));
 
             return sb.ToString();
         }
@@ -145,7 +146,7 @@ namespace Dapper
             return sb.ToString();
         }
 
-        public static string DeleteByIdSql<T>(this T t, object id)
+        public static string DeleteByPkSql<T>(this T t)
         {
             var currenttype = typeof(T);
             var idProps = GetIdProperties(currenttype).ToList();
@@ -161,13 +162,17 @@ namespace Dapper
 
             var sb = new StringBuilder();
             sb.AppendFormat("Delete from {0}", name);
-            sb.Append(" where " + GetColumnName(onlyKey) + " = @Id");
+
+            var pkColumnName = GetColumnName(onlyKey);
+            sb.Append(" where " + pkColumnName + " = @" + pkColumnName);
+
+           // sb.Append(" where " + GetColumnName(onlyKey) + " = @Id");
 
             //var dynParms = new DynamicParameters();
             //dynParms.Add("@id", id);
 
-            if (Debugger.IsAttached)
-                Trace.WriteLine(String.Format("Delete<{0}> {1}", currenttype, sb));
+            //if (Debugger.IsAttached)
+            //    Trace.WriteLine(String.Format("Delete<{0}> {1}", currenttype, sb));
 
            // return connection.Execute(sb.ToString(), dynParms, transaction, commandTimeout);
             return sb.ToString();
