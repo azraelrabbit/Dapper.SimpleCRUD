@@ -26,6 +26,9 @@ namespace Dapper
         private static string _getIdentitySql;
         private static string _getPagedListSql;
 
+        private static string _getPagedListSelectCommon = "Select {SelectColumns} from {TableName}";
+        private static string _getPagedListSelectMsSql = "SELECT * FROM (SELECT ROW_NUMBER() OVER(ORDER BY {OrderBy}) AS PagedNumber, {SelectColumns} FROM {TableName}";
+
         /// <summary>
         /// Returns the current dialect name
         /// </summary>
@@ -46,25 +49,25 @@ namespace Dapper
                     _dialect = Dialect.PostgreSQL;
                     _encapsulation = "{0}";
                     _getIdentitySql = string.Format("SELECT LASTVAL() AS id");
-                    _getPagedListSql = "Select {SelectColumns} from {TableName} {WhereClause} Order By {OrderBy} LIMIT {RowsPerPage} OFFSET (({PageNumber}-1) * {RowsPerPage})";
+                    _getPagedListSql = _getPagedListSelectCommon+" {WhereClause} Order By {OrderBy} LIMIT {RowsPerPage} OFFSET (({PageNumber}-1) * {RowsPerPage})";
                     break;
                 case Dialect.SQLite:
                     _dialect = Dialect.SQLite;
                     _encapsulation = "{0}";
                     _getIdentitySql = string.Format("SELECT LAST_INSERT_ROWID() AS id");
-                    _getPagedListSql = "Select {SelectColumns} from {TableName} {WhereClause} Order By {OrderBy} LIMIT {RowsPerPage} OFFSET (({PageNumber}-1) * {RowsPerPage})";
+                    _getPagedListSql = _getPagedListSelectCommon + " {WhereClause} Order By {OrderBy} LIMIT {RowsPerPage} OFFSET (({PageNumber}-1) * {RowsPerPage})";
                     break;
                 case Dialect.MySQL:
                     _dialect=Dialect.MySQL;
                     _encapsulation = "{0}";   //last_insert_id()
                     _getIdentitySql = string.Format("SELECT last_insert_id() AS id");
-                    _getPagedListSql = "Select {SelectColumns} from {TableName} {WhereClause} Order By {OrderBy} LIMIT (({PageNumber}-1) * {RowsPerPage}),{RowsPerPage}";
+                    _getPagedListSql = _getPagedListSelectCommon + " {WhereClause} Order By {OrderBy} LIMIT (({PageNumber}-1) * {RowsPerPage}),{RowsPerPage}";
                     break;
                 default:
                     _dialect = Dialect.SQLServer;
                     _encapsulation = "[{0}]";
                     _getIdentitySql = string.Format("SELECT CAST(SCOPE_IDENTITY()  AS BIGINT) AS [id]");
-                    _getPagedListSql = "SELECT * FROM (SELECT ROW_NUMBER() OVER(ORDER BY {OrderBy}) AS PagedNumber, {SelectColumns} FROM {TableName} {WhereClause}) AS u WHERE PagedNUMBER BETWEEN (({PageNumber} - 1) * {RowsPerPage} + 1) AND ({PageNumber} * {RowsPerPage})";
+                    _getPagedListSql = _getPagedListSelectMsSql+" {WhereClause}) AS u WHERE PagedNUMBER BETWEEN (({PageNumber} - 1) * {RowsPerPage} + 1) AND ({PageNumber} * {RowsPerPage})";
                     break;
             }
         }
