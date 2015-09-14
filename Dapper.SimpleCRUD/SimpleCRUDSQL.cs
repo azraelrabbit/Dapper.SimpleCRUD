@@ -13,8 +13,8 @@ namespace Dapper
     {
         public static string GetByPkSql<T>(this T t)
         {
-            var currenttype = typeof(T);
-            var idProps = GetIdProperties(currenttype).ToList();
+             
+            var idProps = GetIdProperties(t).ToList();
 
             if (!idProps.Any())
                 throw new ArgumentException("Get<T> only supports an entity with a [Key] or Id property");
@@ -22,7 +22,7 @@ namespace Dapper
                 throw new ArgumentException("Get<T> only supports an entity with a single [Key] or Id property");
 
             var onlyKey = idProps.First();
-            var name = GetTableName(currenttype);
+            var name = GetTableName(t);
             var sb = new StringBuilder();
             sb.Append("Select ");
             //create a new empty instance of the type to get the base properties
@@ -42,12 +42,12 @@ namespace Dapper
 
         public static string GetListSql<T>(this T t, object whereConditions)
         {
-            var currenttype = typeof(T);
-            var idProps = GetIdProperties(currenttype).ToList();
+            
+            var idProps = GetIdProperties(t).ToList();
             if (!idProps.Any())
                 throw new ArgumentException("Entity must have at least one [Key] property");
 
-            var name = GetTableName(currenttype);
+            var name = GetTableName(t);
 
             var sb = new StringBuilder();
             var whereprops = GetAllProperties(whereConditions).ToArray();
@@ -63,7 +63,7 @@ namespace Dapper
             }
 
             if (Debugger.IsAttached)
-                Trace.WriteLine(String.Format("GetList<{0}>: {1}", currenttype, sb));
+                Trace.WriteLine(String.Format("GetList<{0}>: {1}", t, sb));
 
             return sb.ToString();
         }
