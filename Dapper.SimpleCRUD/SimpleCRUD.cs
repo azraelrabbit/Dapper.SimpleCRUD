@@ -79,8 +79,9 @@ namespace Dapper
         /// <typeparam name="T"></typeparam>
         /// <param name="connection"></param>
         /// <param name="id"></param>
+        /// <param name="trans"></param>
         /// <returns>Returns a single entity by a single id from table T.</returns>
-        public static T Get<T>(this IDbConnection connection, object id)
+        public static T Get<T>(this IDbConnection connection, object id,IDbTransaction trans=null)
         {
             var currenttype = typeof(T);
             var idProps = GetIdProperties(currenttype).ToList();
@@ -105,7 +106,7 @@ namespace Dapper
             if (Debugger.IsAttached)
                 Trace.WriteLine(String.Format("Get<{0}>: {1} with Id: {2}", currenttype, sb, id));
 
-            return connection.Query<T>(sb.ToString(), dynParms).FirstOrDefault();
+            return connection.Query<T>(sb.ToString(), dynParms,trans).FirstOrDefault();
         }
 
         /// <summary>
@@ -118,7 +119,7 @@ namespace Dapper
         /// <param name="connection"></param>
         /// <param name="whereConditions"></param>
         /// <returns>Gets a list of entities with optional exact match where conditions</returns>
-        public static IEnumerable<T> GetList<T>(this IDbConnection connection, object whereConditions)
+        public static IEnumerable<T> GetList<T>(this IDbConnection connection, object whereConditions, IDbTransaction trans = null)
         {
             var currenttype = typeof(T);
             var idProps = GetIdProperties(currenttype).ToList();
@@ -143,7 +144,7 @@ namespace Dapper
             if (Debugger.IsAttached)
                 Trace.WriteLine(String.Format("GetList<{0}>: {1}", currenttype, sb));
 
-            return connection.Query<T>(sb.ToString(), whereConditions);
+            return connection.Query<T>(sb.ToString(), whereConditions,trans);
         }
 
         /// <summary>
@@ -156,7 +157,7 @@ namespace Dapper
         /// <param name="connection"></param>
         /// <param name="conditions"></param>
         /// <returns>Gets a list of entities with optional SQL where conditions</returns>
-        public static IEnumerable<T> GetList<T>(this IDbConnection connection, string conditions)
+        public static IEnumerable<T> GetList<T>(this IDbConnection connection, string conditions, IDbTransaction trans = null)
         {
             var currenttype = typeof(T);
             var idProps = GetIdProperties(currenttype).ToList();
@@ -176,7 +177,7 @@ namespace Dapper
             if (Debugger.IsAttached)
                 Trace.WriteLine(String.Format("GetList<{0}>: {1}", currenttype, sb));
 
-            return connection.Query<T>(sb.ToString());
+            return connection.Query<T>(sb.ToString(),transaction:trans);
         }
 
         /// <summary>
@@ -187,9 +188,9 @@ namespace Dapper
         /// <typeparam name="T"></typeparam>
         /// <param name="connection"></param>
         /// <returns>Gets a list of all entities</returns>
-        public static IEnumerable<T> GetList<T>(this IDbConnection connection)
+        public static IEnumerable<T> GetList<T>(this IDbConnection connection, IDbTransaction trans = null)
         {
-            return connection.GetList<T>(new { });
+            return connection.GetList<T>(new { },trans);
         }
 
         /// <summary>
@@ -206,7 +207,7 @@ namespace Dapper
         /// <param name="conditions"></param>
         /// <param name="orderby"></param>
         /// <returns>Gets a paged list of entities with optional exact match where conditions</returns>
-        public static IEnumerable<T> GetListPaged<T>(this IDbConnection connection, int pageNumber, int rowsPerPage, string conditions, string orderby)
+        public static IEnumerable<T> GetListPaged<T>(this IDbConnection connection, int pageNumber, int rowsPerPage, string conditions, string orderby, IDbTransaction trans = null)
         {
             if (string.IsNullOrEmpty(_getPagedListSql))
                 throw new Exception("GetListPage is not supported with the current SQL Dialect");
@@ -239,7 +240,7 @@ namespace Dapper
             if (Debugger.IsAttached)
                 Trace.WriteLine(String.Format("GetListPaged<{0}>: {1}", currenttype, query));
 
-            return connection.Query<T>(query);
+            return connection.Query<T>(query,transaction:trans);
         }
 
         /// <summary>
@@ -500,7 +501,7 @@ namespace Dapper
         /// <param name="connection"></param>
         /// <param name="conditions"></param>
         /// <returns>Returns a count of records.</returns>
-        public static int RecordCount<T>(this IDbConnection connection, string conditions = "")
+        public static int RecordCount<T>(this IDbConnection connection, string conditions = "", IDbTransaction trans = null)
         {
             var currenttype = typeof(T);
             var name = GetTableName(currenttype);
@@ -512,7 +513,7 @@ namespace Dapper
             if (Debugger.IsAttached)
                 Trace.WriteLine(String.Format("RecordCount<{0}>: {1}", currenttype, sb));
 
-            return connection.Query<int>(sb.ToString()).Single();
+            return connection.Query<int>(sb.ToString(),transaction:trans).Single();
         }
 
 
