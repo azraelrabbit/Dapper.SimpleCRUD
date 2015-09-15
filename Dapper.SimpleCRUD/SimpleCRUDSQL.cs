@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
  
@@ -40,7 +41,7 @@ namespace Dapper
             return sb.ToString();
         }
 
-        public static string GetListSql<T>(this T t, object whereConditions)
+        public static string GetListSql<T>(this T t, object whereConditions,bool withTableName=false)
         {
             
             var idProps = GetIdProperties(t).ToList();
@@ -53,13 +54,13 @@ namespace Dapper
             var whereprops = GetAllProperties(whereConditions).ToArray();
             sb.Append("Select ");
             //create a new empty instance of the type to get the base properties
-            BuildSelect(sb, GetScaffoldableProperties((T)Activator.CreateInstance(typeof(T))).ToArray());
+            BuildSelect(sb, GetScaffoldableProperties((T)Activator.CreateInstance(typeof(T))).ToArray(),withTableName, name);
             sb.AppendFormat(" from {0}", name);
 
             if (whereprops.Any())
             {
                 sb.Append(" where ");
-                BuildWhere(sb, whereprops, (T)Activator.CreateInstance(typeof(T)));
+                BuildWhere(sb, whereprops, (T)Activator.CreateInstance(typeof(T)),withTableName);
             }
 
             if (Debugger.IsAttached)
@@ -68,6 +69,55 @@ namespace Dapper
             return sb.ToString();
         }
 
+        private static void BuildSelect(StringBuilder sb, IEnumerable<PropertyInfo> props,bool withTableName=false,string tableName=null)
+        {
+            var propertyInfos = props as IList<PropertyInfo> ?? props.ToList();
+            for (var i = 0; i < propertyInfos.Count(); i++)
+            {
+                var columnName = GetColumnName(propertyInfos.ElementAt(i));
+                if (withTableName && !string.IsNullOrEmpty(tableName))
+                {
+                    columnName = tableName + "." + columnName;
+                }
+                sb.Append(columnName);
+                //if there is a custom column name add an "as customcolumnname" to the item so it maps properly
+                if (propertyInfos.ElementAt(i).GetCustomAttributes(true).SingleOrDefault(attr => attr.GetType().Name == "ColumnAttribute") != null)
+                    sb.Append(" as " + propertyInfos.ElementAt(i).Name);
+                if (i < propertyInfos.Count() - 1)
+                    sb.Append(",");
+            }
+        }
+
+        //build where clause based on list of properties
+        private static void BuildWhere(StringBuilder sb, IEnumerable<PropertyInfo> idProps, object sourceEntity,bool withTableName=false, string tableName = null)
+        {
+            var propertyInfos = idProps.ToArray();
+            for (var i = 0; i < propertyInfos.Count(); i++)
+            {
+                //match up generic properties to source entity properties to allow fetching of the column attribute
+                //the anonymous object used for search doesn't have the custom attributes attached to them so this allows us to build the correct where clause
+                //by converting the model type to the database column name via the column attribute
+                var propertyToUse = propertyInfos.ElementAt(i);
+                var sourceProperties = GetScaffoldableProperties(sourceEntity).ToArray();
+                for (var x = 0; x < sourceProperties.Count(); x++)
+                {
+                    if (sourceProperties.ElementAt(x).Name == propertyInfos.ElementAt(i).Name)
+                    {
+                        propertyToUse = sourceProperties.ElementAt(x);
+                    }
+                }
+
+                var columnName = GetColumnName(propertyToUse);
+                if (withTableName && !string.IsNullOrEmpty(tableName))
+                {
+                    columnName = tableName + "." + columnName;
+                }
+
+                sb.AppendFormat("{0} = @{1}", columnName, propertyInfos.ElementAt(i).Name);
+                if (i < propertyInfos.Count() - 1)
+                    sb.AppendFormat(" and ");
+            }
+        }
 
         public static string InsertSql<T>(this T entity)
         {
